@@ -67,7 +67,7 @@ public class MessageService {
         message.setDeleted(dto.isDeleted());
         message.setCreatedAt(dto.createdAt() == null ? null : Instant.ofEpochSecond(dto.createdAt()));
         message.setUpdatedAt(dto.updatedAt() == null ? null : Instant.ofEpochSecond(dto.updatedAt()));
-        
+
         repo.insert(message);
     }
 }

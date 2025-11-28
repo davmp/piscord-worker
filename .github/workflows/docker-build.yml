@@ -19,13 +19,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Native Executable
         run: ./mvnw package -Pnative -Dquarkus.native.container-build=true
 
