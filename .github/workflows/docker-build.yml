@@ -27,7 +27,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Native Executable
-        run: ./mvnw package -Pnative
+        run: |
+          ./mvnw package -Pnative \
+          -Dquarkus.native.builder-image=ghcr.io/graalvm/native-image-community:latest \
+          -Dquarkus.native.additional-build-args=--march=x86-64-v2
 
       - name: Login to GHCR
         uses: docker/login-action@v3
