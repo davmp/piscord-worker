@@ -26,7 +26,7 @@ jobs:
           java-version: 21
 
       - name: Build Native Executable
-        run: ./mvnw package -Pnative -Dquarkus.native.container-build=true
+        run: ./mvnw package -Pnative -Dquarkus.native.container-build=true -Dquarkus.native.march=compatibility
 
       - name: Login to GHCR
         uses: docker/login-action@v3
