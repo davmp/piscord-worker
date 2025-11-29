@@ -43,7 +43,7 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -f src/main/docker/Dockerfile.native -t ${{ steps.img.outputs.image }} .
+          docker build -t ${{ steps.img.outputs.image }} .
           docker tag ${{ steps.img.outputs.image }}:latest ${{ steps.img.outputs.image }}:${{ github.sha }}
 
       - name: Push image
