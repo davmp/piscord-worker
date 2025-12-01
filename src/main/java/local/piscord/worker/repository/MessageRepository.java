@@ -1,20 +1,17 @@
 package local.piscord.worker.repository;
 
 import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Indexes.descending;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import org.bson.types.ObjectId;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Indexes;
 
 import io.quarkus.mongodb.reactive.ReactiveMongoClient;
 import io.quarkus.mongodb.reactive.ReactiveMongoCollection;
+import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import local.piscord.worker.model.Message;
 
@@ -22,36 +19,35 @@ import local.piscord.worker.model.Message;
 public class MessageRepository {
 
     @Inject
-    MongoClient client;
+    ReactiveMongoClient client;
 
-    @Inject
-    ReactiveMongoClient reactiveClient;
-
-    private MongoCollection<Message> col() {
+    private ReactiveMongoCollection<Message> col() {
         return client
                 .getDatabase("piscord")
                 .getCollection("messages", Message.class);
     }
 
-    private ReactiveMongoCollection<Message> reactiveCol() {
-        return reactiveClient
-                .getDatabase("piscord")
-                .getCollection("messages", Message.class);
+    public Uni<Void> persist(Message msg) {
+        return col().insertOne(msg).replaceWithVoid();
     }
 
-    public Uni<Void> persistReactive(Message msg) {
-        return reactiveCol().insertOne(msg).replaceWithVoid();
+    public Uni<Void> update(Message msg) {
+        return col().replaceOne(eq("_id", msg.getId()), msg).replaceWithVoid();
     }
 
-    public void insert(Message msg) {
-        col().insertOne(msg);
+    public Uni<Void> delete(String id) {
+        return col().deleteOne(eq("_id", new ObjectId(id))).replaceWithVoid();
     }
 
-    public List<Message> findLatest(String roomId, int limit) {
-        return col()
-                .find(eq("room_id", new ObjectId(roomId)))
-                .sort(descending("created_at"))
-                .limit(limit)
-                .into(new ArrayList<>());
+    public void init(@Observes StartupEvent ev) {
+        col().createIndex(Indexes.compoundIndex(Indexes.ascending("room_id"), Indexes.descending("created_at")))
+                .subscribe()
+                .with(s -> {
+                }, Throwable::printStackTrace);
+
+        col().createIndex(Indexes.ascending("user_id"))
+                .subscribe()
+                .with(s -> {
+                }, Throwable::printStackTrace);
     }
 }
