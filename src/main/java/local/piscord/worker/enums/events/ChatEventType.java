@@ -1,5 +1,10 @@
 package local.piscord.worker.enums.events;
 
+import java.util.Arrays;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum ChatEventType {
     // Room
     ROOM_CREATE("room.create"),
@@ -18,7 +23,16 @@ public enum ChatEventType {
         this.value = value;
     }
 
+    @JsonValue
     public String getValue() {
         return value;
+    }
+
+    @JsonCreator
+    public static ChatEventType fromValue(String value) {
+        return Arrays.stream(ChatEventType.values())
+                .filter(t -> t.value.equals(value))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown type: " + value));
     }
 }

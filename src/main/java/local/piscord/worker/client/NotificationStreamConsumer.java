@@ -8,6 +8,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
@@ -26,9 +27,8 @@ import local.piscord.worker.dto.notification.NotificationDto;
 import local.piscord.worker.dto.notification.NotificationEventDto;
 import local.piscord.worker.dto.notification.NotificationReadAllDto;
 import local.piscord.worker.dto.notification.NotificationReadDto;
-import local.piscord.worker.service.MessageService;
+import local.piscord.worker.enums.events.NotificationEventType;
 import local.piscord.worker.service.NotificationService;
-import local.piscord.worker.service.RoomService;
 
 @ApplicationScoped
 public class NotificationStreamConsumer {
@@ -49,12 +49,6 @@ public class NotificationStreamConsumer {
 
   @Inject
   ObjectMapper objectMapper;
-
-  @Inject
-  RoomService roomService;
-
-  @Inject
-  MessageService messageService;
 
   @Inject
   NotificationService notificationService;
@@ -129,21 +123,22 @@ public class NotificationStreamConsumer {
 
   private void handleEvent(String key, StreamMessage<String, String, String> streamMessage,
       Function<NotificationEventDto, Uni<Void>> processor) {
-    String userId = streamMessage.payload().get("userId");
+    String typeStr = streamMessage.payload().get("type");
+    String payloadStr = streamMessage.payload().get("payload");
 
-    if (userId == null) {
-      LOG.warnf("Received empty message id: %s", streamMessage.id());
+    if (typeStr == null || payloadStr == null) {
+      LOG.warnf("Discarding invalid message format id: %s. Missing type or payload.", streamMessage.id());
       ackMessage(key, streamMessage.id());
       return;
     }
 
-    String content = streamMessage.payload().toString();
-
-    LOG.debugf("Processing message %s: %s", streamMessage.id(), content);
+    LOG.debugf("Processing message %s: type=%s", streamMessage.id(), typeStr);
 
     try {
-      NotificationEventDto event = objectMapper.readValue(content, NotificationEventDto.class);
-      Uni<Void> processingUni = processor.apply(event);
+      NotificationEventType type = NotificationEventType.valueOf(typeStr);
+      JsonNode payload = objectMapper.readTree(payloadStr);
+
+      Uni<Void> processingUni = processor.apply(new NotificationEventDto(type, payload));
 
       processingUni
           .flatMap(v -> ackMessage(key, streamMessage.id()))

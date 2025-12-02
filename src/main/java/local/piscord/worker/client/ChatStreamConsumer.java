@@ -8,6 +8,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
@@ -26,6 +27,7 @@ import local.piscord.worker.dto.chat.RoomDto;
 import local.piscord.worker.dto.chat.RoomJoinDto;
 import local.piscord.worker.dto.chat.RoomLeaveDto;
 import local.piscord.worker.dto.chat.RoomUpdateDto;
+import local.piscord.worker.enums.events.ChatEventType;
 import local.piscord.worker.service.MessageService;
 import local.piscord.worker.service.RoomService;
 
@@ -131,25 +133,22 @@ public class ChatStreamConsumer {
 
     private void handleEvent(String key, StreamMessage<String, String, String> streamMessage,
             Function<ChatEventDto, Uni<Void>> processor) {
-        String messageJson = streamMessage.payload().get("content");
+        String typeStr = streamMessage.payload().get("type");
+        String payloadStr = streamMessage.payload().get("payload");
 
-        if (messageJson == null) {
-            if (!streamMessage.payload().isEmpty()) {
-                messageJson = streamMessage.payload().values().iterator().next();
-            }
-        }
-
-        if (messageJson == null) {
-            LOG.warnf("Received empty message id: %s", streamMessage.id());
+        if (typeStr == null || payloadStr == null) {
+            LOG.warnf("Discarding invalid message format id: %s. Missing type or payload.", streamMessage.id());
             ackMessage(key, streamMessage.id());
             return;
         }
 
-        LOG.debugf("Processing message %s: %s", streamMessage.id(), messageJson);
+        LOG.debugf("Processing message %s: type=%s", streamMessage.id(), typeStr);
 
         try {
-            ChatEventDto event = objectMapper.readValue(messageJson, ChatEventDto.class);
-            Uni<Void> processingUni = processor.apply(event);
+            ChatEventType type = ChatEventType.valueOf(typeStr);
+            JsonNode payload = objectMapper.readTree(payloadStr);
+
+            Uni<Void> processingUni = processor.apply(new ChatEventDto(type, payload));
 
             processingUni
                     .flatMap(v -> ackMessage(key, streamMessage.id()))

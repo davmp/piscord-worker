@@ -8,6 +8,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
@@ -22,6 +23,7 @@ import jakarta.inject.Inject;
 import local.piscord.worker.dto.user.UserEventDto;
 import local.piscord.worker.dto.user.UserRegisterDto;
 import local.piscord.worker.dto.user.UserUpdateDto;
+import local.piscord.worker.enums.events.UserEventType;
 import local.piscord.worker.service.UserService;
 
 public class UserStreamConsumer {
@@ -112,37 +114,31 @@ public class UserStreamConsumer {
 
     private void handleEvent(String key, StreamMessage<String, String, String> streamMessage,
             Function<UserEventDto, Uni<Void>> processor) {
-        String messageJson = streamMessage.payload().get("content");
+        String typeStr = streamMessage.payload().get("type");
+        String payloadStr = streamMessage.payload().get("payload");
 
-        if (messageJson == null) {
-            if (!streamMessage.payload().isEmpty()) {
-                messageJson = streamMessage.payload().values().iterator().next();
-            }
-        }
-
-        if (messageJson == null) {
-            LOG.warnf("Received empty message id: %s", streamMessage.id());
+        if (typeStr == null || payloadStr == null) {
+            LOG.warnf("Discarding invalid message format id: %s. Missing type or payload.", streamMessage.id());
             ackMessage(key, streamMessage.id());
             return;
         }
 
-        LOG.debugf("Processing message %s: %s", streamMessage.id(), messageJson);
+        LOG.debugf("Processing message %s: type=%s", streamMessage.id(), typeStr);
 
         try {
-            UserEventDto event = objectMapper.readValue(messageJson, UserEventDto.class);
-            Uni<Void> processingUni = processor.apply(event);
+            UserEventType type = UserEventType.valueOf(typeStr);
+            JsonNode payload = objectMapper.readTree(payloadStr);
+
+            Uni<Void> processingUni = processor.apply(new UserEventDto(type, payload));
 
             processingUni
                     .flatMap(v -> ackMessage(key, streamMessage.id()))
                     .subscribe().with(
                             success -> LOG.debugf("Event %s processed and acknowledged", streamMessage.id()),
                             failure -> LOG.errorf("Failed to process event %s", streamMessage.id(), failure));
-
         } catch (Exception e) {
-            LOG.errorf("Failed to deserialize or process message %s", streamMessage.id(), e);
-            ackMessage(key, streamMessage.id()).subscribe().with(x -> {
-            }, t -> {
-            });
+            LOG.errorf("Failed to process user event %s", streamMessage.id(), e);
+            ackMessage(key, streamMessage.id());
         }
     }
 
