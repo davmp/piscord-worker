@@ -3,13 +3,15 @@ package local.piscord.worker.model;
 import java.time.Instant;
 
 import org.bson.codecs.pojo.annotations.BsonId;
-import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
 public class User {
 
     @BsonId
-    ObjectId id;
+    ObjectId id = new ObjectId();
 
     String username;
 
@@ -19,18 +21,36 @@ public class User {
 
     String bio;
 
-    @BsonProperty("created_at")
     Instant createdAt;
 
-    @BsonProperty("updated_at")
     Instant updatedAt;
 
     public ObjectId getId() {
         return id;
     }
 
-    public void setId(ObjectId id) {
-        this.id = id;
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getPicture() {
+        return picture;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public void setUsername(String username) {

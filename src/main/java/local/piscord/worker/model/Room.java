@@ -4,15 +4,16 @@ import java.time.Instant;
 import java.util.List;
 
 import org.bson.codecs.pojo.annotations.BsonId;
-import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import local.piscord.worker.enums.RoomType;
 
+@RegisterForReflection
 public class Room {
 
   @BsonId
-  ObjectId id;
+  ObjectId id = new ObjectId();
 
   String name;
 
@@ -26,30 +27,68 @@ public class Room {
 
   List<ObjectId> admins;
 
-  @BsonProperty("owner_id")
   ObjectId ownerId;
 
-  @BsonProperty("max_members")
   Integer maxMembers;
 
-  @BsonProperty("is_active")
   Boolean isActive;
 
-  @BsonProperty("direct_key")
   String directKey;
 
-  @BsonProperty("created_at")
   Instant createdAt;
 
-  @BsonProperty("updated_at")
   Instant updatedAt;
 
   public ObjectId getId() {
     return id;
   }
 
-  public void setId(ObjectId id) {
-    this.id = id;
+  public String getName() {
+    return name;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public String getPicture() {
+    return picture;
+  }
+
+  public RoomType getType() {
+    return type;
+  }
+
+  public List<ObjectId> getMembers() {
+    return members;
+  }
+
+  public List<ObjectId> getAdmins() {
+    return admins;
+  }
+
+  public ObjectId getOwnerId() {
+    return ownerId;
+  }
+
+  public Integer getMaxMembers() {
+    return maxMembers;
+  }
+
+  public Boolean getIsActive() {
+    return isActive;
+  }
+
+  public String getDirectKey() {
+    return directKey;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public Instant getUpdatedAt() {
+    return updatedAt;
   }
 
   public void setName(String name) {

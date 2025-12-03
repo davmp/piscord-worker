@@ -7,9 +7,9 @@ import org.bson.types.ObjectId;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import local.piscord.worker.dto.notification.NotificationCreateDto;
 import local.piscord.worker.dto.notification.NotificationDeleteAllDto;
 import local.piscord.worker.dto.notification.NotificationDeleteDto;
-import local.piscord.worker.dto.notification.NotificationDto;
 import local.piscord.worker.dto.notification.NotificationReadAllDto;
 import local.piscord.worker.dto.notification.NotificationReadDto;
 import local.piscord.worker.enums.NotificationType;
@@ -22,8 +22,25 @@ public class NotificationService {
   @Inject
   NotificationRepository repo;
 
-  public Uni<Void> create(NotificationDto dto) {
-    return repo.persist(mapToEntity(dto));
+  public Uni<Void> create(NotificationCreateDto dto) {
+    Notification notification = new Notification();
+
+    // User ID - Required
+    try {
+      notification.setUserId(new ObjectId(dto.userId()));
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Invalid user ID format: " + dto.userId(), e);
+    }
+
+    notification.setType(NotificationType.fromValue(dto.type()));
+    notification.setIsRead(dto.isRead());
+    notification.setTitle(dto.title());
+    notification.setBody(dto.body());
+    notification.setPicture(dto.picture());
+    notification.setActionUrl(dto.actionUrl());
+    notification.setCreatedAt(Instant.parse(dto.createdAt()));
+
+    return repo.persist(notification);
   }
 
   public Uni<Void> read(NotificationReadDto dto) {
@@ -40,33 +57,5 @@ public class NotificationService {
 
   public Uni<Void> deleteAll(NotificationDeleteAllDto dto) {
     return repo.deleteAll(dto.userId());
-  }
-
-  private Notification mapToEntity(NotificationDto dto) {
-    Notification notification = new Notification();
-
-    // ID - Required
-    try {
-      notification.setId(new ObjectId(dto.id()));
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Invalid notification ID format: " + dto.id(), e);
-    }
-
-    // User ID - Required
-    try {
-      notification.setUserId(new ObjectId(dto.userId()));
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Invalid user ID format: " + dto.userId(), e);
-    }
-
-    notification.setType(NotificationType.valueOf(dto.type()));
-    notification.setIsRead(dto.isRead());
-    notification.setTitle(dto.title());
-    notification.setBody(dto.body());
-    notification.setPicture(dto.picture());
-    notification.setActionUrl(dto.actionUrl());
-    notification.setCreatedAt(Instant.ofEpochSecond(dto.createdAt()));
-
-    return notification;
   }
 }

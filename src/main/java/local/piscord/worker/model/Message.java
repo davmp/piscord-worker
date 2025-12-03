@@ -3,54 +3,83 @@ package local.piscord.worker.model;
 import java.time.Instant;
 
 import org.bson.codecs.pojo.annotations.BsonId;
-import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import local.piscord.worker.enums.MessageType;
 
+@RegisterForReflection
 public class Message {
 
     @BsonId
-    ObjectId id;
+    ObjectId id = new ObjectId();
 
-    @BsonProperty("room_id")
     ObjectId roomId;
 
-    @BsonProperty("user_id")
     ObjectId userId;
 
     String content;
 
     MessageType type; // text, image, file, system
 
-    @BsonProperty("file_url")
     String fileUrl;
 
-    @BsonProperty("reply_to")
     ObjectId replyTo;
 
-    @BsonProperty("is_edited")
     boolean isEdited;
 
-    @BsonProperty("is_deleted")
     boolean isDeleted;
 
-    @BsonProperty("created_at")
     Instant createdAt;
 
-    @BsonProperty("updated_at")
     Instant updatedAt;
 
     public ObjectId getId() {
         return id;
     }
 
-    public void setId(ObjectId id) {
-        this.id = id;
-    }
-
     public ObjectId getRoomId() {
         return roomId;
+    }
+
+    public ObjectId getUserId() {
+        return userId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public MessageType getType() {
+        return type;
+    }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public ObjectId getReplyTo() {
+        return replyTo;
+    }
+
+    public boolean isEdited() {
+        return isEdited;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setId(ObjectId id) {
+        this.id = id;
     }
 
     public void setRoomId(ObjectId roomId) {

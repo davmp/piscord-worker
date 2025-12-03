@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 
 import com.mongodb.client.model.Updates;
 
@@ -26,21 +25,12 @@ public class UserService {
   public Uni<Void> create(UserRegisterDto dto) {
     User user = new User();
 
-    // ID - Required
-    if (dto.id() != null && !dto.id().isBlank()) {
-      try {
-        user.setId(new ObjectId(dto.id()));
-      } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException("Invalid user ID format: " + dto.id(), e);
-      }
-    }
-
     user.setUsername(dto.username());
     user.setPassword(dto.password());
     user.setPicture(dto.picture());
     user.setBio(dto.bio());
-    user.setCreatedAt(Instant.ofEpochSecond(dto.createdAt()));
-    user.setUpdatedAt(Instant.ofEpochSecond(dto.updatedAt()));
+    user.setCreatedAt(Instant.parse(dto.createdAt()));
+    user.setUpdatedAt(Instant.parse(dto.updatedAt()));
 
     return repo.persist(user);
   }

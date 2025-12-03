@@ -12,7 +12,7 @@ import com.mongodb.client.model.Updates;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import local.piscord.worker.dto.chat.RoomDto;
+import local.piscord.worker.dto.chat.RoomCreateDto;
 import local.piscord.worker.dto.chat.RoomJoinDto;
 import local.piscord.worker.dto.chat.RoomLeaveDto;
 import local.piscord.worker.dto.chat.RoomUpdateDto;
@@ -26,20 +26,13 @@ public class RoomService {
   @Inject
   RoomRepository repo;
 
-  public Uni<Void> create(RoomDto dto) {
+  public Uni<Void> create(RoomCreateDto dto) {
     Room room = new Room();
-
-    // ID - Required
-    try {
-      room.setId(new ObjectId(dto.id()));
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Invalid room ID format: " + dto.id(), e);
-    }
 
     room.setName(dto.name());
     room.setDescription(dto.description());
     room.setPicture(dto.picture());
-    room.setType(RoomType.valueOf(dto.type()));
+    room.setType(RoomType.fromValue(dto.type()));
 
     // Members - Required
     try {
@@ -73,8 +66,8 @@ public class RoomService {
     room.setMaxMembers(dto.maxMembers());
     room.setIsActive(dto.isActive());
     room.setDirectKey(dto.directKey());
-    room.setCreatedAt(Instant.ofEpochSecond(dto.createdAt()));
-    room.setUpdatedAt(Instant.ofEpochSecond(dto.updatedAt()));
+    room.setCreatedAt(Instant.parse(dto.createdAt()));
+    room.setUpdatedAt(Instant.parse(dto.updatedAt()));
 
     return repo.persist(room);
   }
@@ -94,8 +87,8 @@ public class RoomService {
     if (dto.type() != null) {
       updates.add(Updates.set("type", dto.type()));
     }
-    if (dto.owner() != null) {
-      updates.add(Updates.set("owner", dto.owner()));
+    if (dto.ownerId() != null) {
+      updates.add(Updates.set("ownerId", dto.ownerId()));
     }
     if (dto.updatedAt() != null) {
       updates.add(Updates.set("updatedAt", dto.updatedAt()));

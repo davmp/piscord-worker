@@ -2,8 +2,10 @@ package local.piscord.worker.dto.chat;
 
 import java.util.List;
 
-public record RoomDto(
-    String id,
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
+public record RoomCreateDto(
     String name,
     String description,
     String picture,
@@ -11,9 +13,9 @@ public record RoomDto(
     List<String> members,
     List<String> admins,
     String ownerId,
-    int maxMembers,
-    boolean isActive,
+    Integer maxMembers,
+    Boolean isActive,
     String directKey,
-    long createdAt,
-    long updatedAt) {
+    String createdAt,
+    String updatedAt) {
 }

@@ -1,7 +1,5 @@
 package local.piscord.worker.client;
 
-import java.time.Duration;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,17 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
 import io.quarkus.redis.datasource.stream.StreamMessage;
-import io.quarkus.redis.datasource.stream.XGroupCreateArgs;
-import io.quarkus.redis.datasource.stream.XReadGroupArgs;
 import io.quarkus.runtime.StartupEvent;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import local.piscord.worker.dto.chat.ChatEventDto;
-import local.piscord.worker.dto.chat.MessageDto;
-import local.piscord.worker.dto.chat.RoomDto;
+import local.piscord.worker.dto.chat.MessageCreateDto;
+import local.piscord.worker.dto.chat.RoomCreateDto;
 import local.piscord.worker.dto.chat.RoomJoinDto;
 import local.piscord.worker.dto.chat.RoomLeaveDto;
 import local.piscord.worker.dto.chat.RoomUpdateDto;
@@ -32,7 +27,7 @@ import local.piscord.worker.service.MessageService;
 import local.piscord.worker.service.RoomService;
 
 @ApplicationScoped
-public class ChatStreamConsumer {
+public class ChatStreamConsumer extends BaseStreamConsumer {
 
     private static final Logger LOG = Logger.getLogger(ChatStreamConsumer.class);
 
@@ -46,9 +41,6 @@ public class ChatStreamConsumer {
     String consumer;
 
     @Inject
-    ReactiveRedisDataSource dataSource;
-
-    @Inject
     ObjectMapper objectMapper;
 
     @Inject
@@ -57,46 +49,17 @@ public class ChatStreamConsumer {
     @Inject
     MessageService messageService;
 
-    void onStart(@Observes StartupEvent ev) {
-        initStream(key, this::startChatConsumerLoop);
+    @Inject
+    public void setDataSource(ReactiveRedisDataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
-    private void initStream(String key, Runnable onSuccess) {
-        dataSource.stream(String.class)
-                .xgroupCreate(key, group, "0", new XGroupCreateArgs().mkstream())
-                .onFailure().recoverWithItem(t -> {
-                    LOG.debugf("Consumer group might already exist for key %s: %s", key, t.getMessage());
-                    return null;
-                })
-                .subscribe().with(
-                        x -> onSuccess.run(),
-                        t -> LOG.errorf("Failed to create consumer group for key %s", key, t));
+    void onStart(@Observes StartupEvent ev) {
+        initStream(key, group, this::startChatConsumerLoop);
     }
 
     private void startChatConsumerLoop() {
-        startConsumerLoop(key, this::processChatEvent);
-    }
-
-    private void startConsumerLoop(String key, Consumer<StreamMessage<String, String, String>> processor) {
-        LOG.infof("Starting consumer loop for stream %s, group %s, consumer %s", key, group, consumer);
-
-        Multi.createBy().repeating()
-                .uni(() -> dataSource.stream(String.class)
-                        .xreadgroup(group, consumer, key, ">",
-                                new XReadGroupArgs().count(1).block(Duration.ofSeconds(2))))
-                .whilst(x -> true) // Infinite loop
-                .subscribe().with(
-                        messages -> {
-                            if (messages != null) {
-                                for (StreamMessage<String, String, String> msg : messages) {
-                                    processor.accept(msg);
-                                }
-                            }
-                        },
-                        t -> {
-                            LOG.errorf("Error in consumer loop for stream %s, restarting...", key, t);
-                            startConsumerLoop(key, processor);
-                        });
+        startConsumerLoop(key, group, consumer, this::processChatEvent);
     }
 
     private void processChatEvent(StreamMessage<String, String, String> streamMessage) {
@@ -105,7 +68,7 @@ public class ChatStreamConsumer {
                 return switch (event.type()) {
                     // Rooms
                     case ROOM_CREATE ->
-                        roomService.create(objectMapper.treeToValue(event.payload(), RoomDto.class));
+                        roomService.create(objectMapper.treeToValue(event.payload(), RoomCreateDto.class));
                     case ROOM_UPDATE ->
                         roomService.update(objectMapper.treeToValue(event.payload(), RoomUpdateDto.class));
                     case ROOM_JOIN ->
@@ -115,9 +78,7 @@ public class ChatStreamConsumer {
 
                     // Messages
                     case MESSAGE_CREATE ->
-                        messageService.create(objectMapper.treeToValue(event.payload(), MessageDto.class));
-                    case MESSAGE_UPDATE ->
-                        messageService.update(objectMapper.treeToValue(event.payload(), MessageDto.class));
+                        messageService.create(objectMapper.treeToValue(event.payload(), MessageCreateDto.class));
                     case MESSAGE_DELETE ->
                         messageService.delete(objectMapper.treeToValue(event.payload(), String.class));
                     default -> {
@@ -138,35 +99,29 @@ public class ChatStreamConsumer {
 
         if (typeStr == null || payloadStr == null) {
             LOG.warnf("Discarding invalid message format id: %s. Missing type or payload.", streamMessage.id());
-            ackMessage(key, streamMessage.id());
+            ackMessage(key, group, streamMessage.id());
             return;
         }
 
         LOG.debugf("Processing message %s: type=%s", streamMessage.id(), typeStr);
 
         try {
-            ChatEventType type = ChatEventType.valueOf(typeStr);
+            ChatEventType type = ChatEventType.fromValue(typeStr);
             JsonNode payload = objectMapper.readTree(payloadStr);
 
             Uni<Void> processingUni = processor.apply(new ChatEventDto(type, payload));
 
             processingUni
-                    .flatMap(v -> ackMessage(key, streamMessage.id()))
+                    .flatMap(v -> ackMessage(key, group, streamMessage.id()))
                     .subscribe().with(
                             success -> LOG.debugf("Event %s processed and acknowledged", streamMessage.id()),
-                            failure -> LOG.errorf("Failed to process event %s", streamMessage.id(), failure));
+                            failure -> LOG.errorf("Failed to process event %s: %s", streamMessage.id(), failure));
 
         } catch (Exception e) {
-            LOG.errorf("Failed to deserialize or process message %s", streamMessage.id(), e);
-            ackMessage(key, streamMessage.id()).subscribe().with(x -> {
+            LOG.errorf("Failed to process chat event %s: %s", streamMessage.id(), e.getMessage());
+            ackMessage(key, group, streamMessage.id()).subscribe().with(x -> {
             }, t -> {
             });
         }
-    }
-
-    private Uni<Void> ackMessage(String key, String messageId) {
-        return dataSource.stream(String.class)
-                .xack(key, group, messageId)
-                .replaceWithVoid();
     }
 }

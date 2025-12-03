@@ -3,23 +3,21 @@ package local.piscord.worker.model;
 import java.time.Instant;
 
 import org.bson.codecs.pojo.annotations.BsonId;
-import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import local.piscord.worker.enums.NotificationType;
 
+@RegisterForReflection
 public class Notification {
 
   @BsonId
-  ObjectId id;
+  ObjectId id = new ObjectId();
 
-  @BsonProperty("user_id")
   ObjectId userId;
 
-  @BsonProperty("type")
   NotificationType type;
 
-  @BsonProperty("is_read")
   Boolean isRead;
 
   String title;
@@ -28,18 +26,44 @@ public class Notification {
 
   String picture;
 
-  @BsonProperty("action_url")
   String actionUrl;
 
-  @BsonProperty("created_at")
   Instant createdAt;
 
   public ObjectId getId() {
     return id;
   }
 
-  public void setId(ObjectId id) {
-    this.id = id;
+  public ObjectId getUserId() {
+    return userId;
+  }
+
+  public NotificationType getType() {
+    return type;
+  }
+
+  public Boolean getIsRead() {
+    return isRead;
+  }
+
+  public String getTitle() {
+    return title;
+  }
+
+  public String getBody() {
+    return body;
+  }
+
+  public String getPicture() {
+    return picture;
+  }
+
+  public String getActionUrl() {
+    return actionUrl;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
   }
 
   public void setUserId(ObjectId userId) {
