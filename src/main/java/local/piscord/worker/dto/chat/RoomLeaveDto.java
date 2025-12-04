@@ -1,7 +1,10 @@
 package local.piscord.worker.dto.chat;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import jakarta.validation.constraints.NotBlank;
 
 @RegisterForReflection
-public record RoomLeaveDto(String id, String userId) {
+public record RoomLeaveDto(
+    @NotBlank(message = "Room ID is required") String id,
+    @NotBlank(message = "User ID is required") String userId) {
 }

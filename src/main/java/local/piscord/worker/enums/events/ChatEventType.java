@@ -13,7 +13,7 @@ public enum ChatEventType {
     ROOM_LEAVE("room.leave"),
 
     // Message
-    MESSAGE_CREATE("message.create"),
+    MESSAGE_SEND("message.send"),
     MESSAGE_UPDATE("message.update"),
     MESSAGE_DELETE("message.delete");
 

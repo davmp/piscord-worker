@@ -33,7 +33,6 @@ public class NotificationService {
     }
 
     notification.setType(NotificationType.fromValue(dto.type()));
-    notification.setIsRead(dto.isRead());
     notification.setTitle(dto.title());
     notification.setBody(dto.body());
     notification.setPicture(dto.picture());

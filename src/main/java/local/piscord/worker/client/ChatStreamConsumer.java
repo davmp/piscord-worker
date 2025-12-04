@@ -17,7 +17,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import local.piscord.worker.dto.chat.ChatEventDto;
-import local.piscord.worker.dto.chat.MessageCreateDto;
+import local.piscord.worker.dto.chat.MessageDeleteDto;
+import local.piscord.worker.dto.chat.MessageSendDto;
+import local.piscord.worker.dto.chat.MessageUpdateDto;
 import local.piscord.worker.dto.chat.RoomCreateDto;
 import local.piscord.worker.dto.chat.RoomJoinDto;
 import local.piscord.worker.dto.chat.RoomLeaveDto;
@@ -77,10 +79,12 @@ public class ChatStreamConsumer extends BaseStreamConsumer {
                         roomService.leave(objectMapper.treeToValue(event.payload(), RoomLeaveDto.class));
 
                     // Messages
-                    case MESSAGE_CREATE ->
-                        messageService.create(objectMapper.treeToValue(event.payload(), MessageCreateDto.class));
+                    case MESSAGE_SEND ->
+                        messageService.send(objectMapper.treeToValue(event.payload(), MessageSendDto.class));
+                    case MESSAGE_UPDATE ->
+                        messageService.update(objectMapper.treeToValue(event.payload(), MessageUpdateDto.class));
                     case MESSAGE_DELETE ->
-                        messageService.delete(objectMapper.treeToValue(event.payload(), String.class));
+                        messageService.delete(objectMapper.treeToValue(event.payload(), MessageDeleteDto.class));
                     default -> {
                         LOG.warnf("Unknown or unhandled chat event type: %s", event.type());
                         yield Uni.createFrom().voidItem();
@@ -109,19 +113,19 @@ public class ChatStreamConsumer extends BaseStreamConsumer {
             ChatEventType type = ChatEventType.fromValue(typeStr);
             JsonNode payload = objectMapper.readTree(payloadStr);
 
-            Uni<Void> processingUni = processor.apply(new ChatEventDto(type, payload));
-
-            processingUni
+            processor.apply(new ChatEventDto(type, payload))
                     .flatMap(v -> ackMessage(key, group, streamMessage.id()))
                     .subscribe().with(
                             success -> LOG.debugf("Event %s processed and acknowledged", streamMessage.id()),
                             failure -> LOG.errorf("Failed to process event %s: %s", streamMessage.id(), failure));
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | JsonProcessingException e) {
             LOG.errorf("Failed to process chat event %s: %s", streamMessage.id(), e.getMessage());
             ackMessage(key, group, streamMessage.id()).subscribe().with(x -> {
             }, t -> {
             });
+        } catch (Exception e) {
+            LOG.errorf("Failed to process chat event, not acknowledging message %s", streamMessage.id());
         }
     }
 }

@@ -21,7 +21,7 @@ public class Room {
 
   String picture;
 
-  RoomType type; // public, private, direct
+  RoomType type;
 
   List<ObjectId> members;
 

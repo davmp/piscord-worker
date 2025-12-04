@@ -101,19 +101,19 @@ public class NotificationStreamConsumer extends BaseStreamConsumer {
       NotificationEventType type = NotificationEventType.fromValue(typeStr);
       JsonNode payload = objectMapper.readTree(payloadStr);
 
-      Uni<Void> processingUni = processor.apply(new NotificationEventDto(type, payload));
-
-      processingUni
+      processor.apply(new NotificationEventDto(type, payload))
           .flatMap(v -> ackMessage(key, group, streamMessage.id()))
           .subscribe().with(
               success -> LOG.debugf("Event %s processed and acknowledged", streamMessage.id()),
               failure -> LOG.errorf("Failed to process event %s: %s", streamMessage.id(), failure));
 
-    } catch (Exception e) {
-      LOG.errorf("Failed to process notification event %s: %s", streamMessage.id(), e.getMessage());
+    } catch (IllegalArgumentException | JsonProcessingException e) {
+      LOG.errorf("Failed to process chat event %s: %s", streamMessage.id(), e.getMessage());
       ackMessage(key, group, streamMessage.id()).subscribe().with(x -> {
       }, t -> {
       });
+    } catch (Exception e) {
+      LOG.errorf("Failed to process chat event, not acknowledging message %s", streamMessage.id());
     }
   }
 }

@@ -66,8 +66,8 @@ public class RoomService {
     room.setMaxMembers(dto.maxMembers());
     room.setIsActive(dto.isActive());
     room.setDirectKey(dto.directKey());
-    room.setCreatedAt(Instant.parse(dto.createdAt()));
-    room.setUpdatedAt(Instant.parse(dto.updatedAt()));
+    room.setCreatedAt(Instant.now());
+    room.setUpdatedAt(Instant.now());
 
     return repo.persist(room);
   }
@@ -90,9 +90,6 @@ public class RoomService {
     if (dto.ownerId() != null) {
       updates.add(Updates.set("ownerId", dto.ownerId()));
     }
-    if (dto.updatedAt() != null) {
-      updates.add(Updates.set("updatedAt", dto.updatedAt()));
-    }
     if (updates.isEmpty()) {
       return Uni.createFrom().voidItem();
     }
@@ -110,6 +107,11 @@ public class RoomService {
       }
     }
 
+    if (updates.isEmpty()) {
+      return Uni.createFrom().voidItem();
+    }
+
+    updates.add(Updates.set("updatedAt", Instant.now()));
     return repo.update(dto.id(), dto.userId(), updates);
   }
 

@@ -18,7 +18,7 @@ public class Notification {
 
   NotificationType type;
 
-  Boolean isRead;
+  Boolean isRead = false;
 
   String title;
 

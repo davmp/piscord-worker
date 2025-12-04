@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 import com.mongodb.client.model.Updates;
 
@@ -14,6 +15,7 @@ import jakarta.inject.Inject;
 import local.piscord.worker.dto.user.UserRegisterDto;
 import local.piscord.worker.dto.user.UserUpdateDto;
 import local.piscord.worker.model.User;
+import local.piscord.worker.repository.MessageRepository;
 import local.piscord.worker.repository.UserRepository;
 
 @ApplicationScoped
@@ -22,6 +24,9 @@ public class UserService {
   @Inject
   UserRepository repo;
 
+  @Inject
+  MessageRepository messageRepo;
+
   public Uni<Void> create(UserRegisterDto dto) {
     User user = new User();
 
@@ -29,14 +34,15 @@ public class UserService {
     user.setPassword(dto.password());
     user.setPicture(dto.picture());
     user.setBio(dto.bio());
-    user.setCreatedAt(Instant.parse(dto.createdAt()));
-    user.setUpdatedAt(Instant.parse(dto.updatedAt()));
+    user.setCreatedAt(Instant.now());
+    user.setUpdatedAt(Instant.now());
 
     return repo.persist(user);
   }
 
   public Uni<Void> update(UserUpdateDto dto) {
     List<Bson> updates = new ArrayList<>();
+
     if (dto.username() != null) {
       updates.add(Updates.set("username", dto.username()));
     }
@@ -55,6 +61,8 @@ public class UserService {
     }
 
     updates.add(Updates.set("updatedAt", Instant.now()));
-    return repo.update(dto.id(), updates);
+    return repo.update(dto.id(), updates)
+        .chain(v -> messageRepo.updateAuthorDetails(new ObjectId(dto.id()), dto.username(),
+            dto.picture()));
   }
 }

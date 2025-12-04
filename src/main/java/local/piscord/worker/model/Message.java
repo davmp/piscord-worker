@@ -6,7 +6,6 @@ import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import local.piscord.worker.enums.MessageType;
 
 @RegisterForReflection
 public class Message {
@@ -16,19 +15,17 @@ public class Message {
 
     ObjectId roomId;
 
-    ObjectId userId;
+    UserSummary author;
 
     String content;
 
-    MessageType type; // text, image, file, system
-
     String fileUrl;
 
-    ObjectId replyTo;
+    MessagePreview replyTo;
 
-    boolean isEdited;
+    Boolean isDeleted;
 
-    boolean isDeleted;
+    Instant editedAt;
 
     Instant createdAt;
 
@@ -38,84 +35,76 @@ public class Message {
         return id;
     }
 
-    public ObjectId getRoomId() {
-        return roomId;
-    }
-
-    public ObjectId getUserId() {
-        return userId;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public MessageType getType() {
-        return type;
-    }
-
-    public String getFileUrl() {
-        return fileUrl;
-    }
-
-    public ObjectId getReplyTo() {
-        return replyTo;
-    }
-
-    public boolean isEdited() {
-        return isEdited;
-    }
-
-    public boolean isDeleted() {
-        return isDeleted;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
     public void setId(ObjectId id) {
         this.id = id;
+    }
+
+    public ObjectId getRoomId() {
+        return roomId;
     }
 
     public void setRoomId(ObjectId roomId) {
         this.roomId = roomId;
     }
 
-    public void setUserId(ObjectId userId) {
-        this.userId = userId;
+    public UserSummary getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(UserSummary author) {
+        this.author = author;
+    }
+
+    public String getContent() {
+        return content;
     }
 
     public void setContent(String content) {
         this.content = content;
     }
 
-    public void setType(MessageType type) {
-        this.type = type;
+    public String getFileUrl() {
+        return fileUrl;
     }
 
     public void setFileUrl(String fileUrl) {
         this.fileUrl = fileUrl;
     }
 
-    public void setReplyTo(ObjectId replyTo) {
+    public MessagePreview getReplyTo() {
+        return replyTo;
+    }
+
+    public void setReplyTo(MessagePreview replyTo) {
         this.replyTo = replyTo;
     }
 
-    public void setEdited(boolean edited) {
-        isEdited = edited;
+    public boolean isDeleted() {
+        return isDeleted;
     }
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
     }
 
+    public Instant getEditedAt() {
+        return editedAt;
+    }
+
+    public void setEditedAt(Instant createdAt) {
+        this.editedAt = createdAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public void setUpdatedAt(Instant updatedAt) {

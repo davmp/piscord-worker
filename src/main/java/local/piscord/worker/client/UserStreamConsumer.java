@@ -92,16 +92,18 @@ public class UserStreamConsumer extends BaseStreamConsumer {
             UserEventType type = UserEventType.fromValue(typeStr);
             JsonNode payload = objectMapper.readTree(payloadStr);
 
-            Uni<Void> processingUni = processor.apply(new UserEventDto(type, payload));
-
-            processingUni
+            processor.apply(new UserEventDto(type, payload))
                     .flatMap(v -> ackMessage(key, group, streamMessage.id()))
                     .subscribe().with(
                             success -> LOG.debugf("Event %s processed and acknowledged", streamMessage.id()),
                             failure -> LOG.errorf("Failed to process event %s: %s", streamMessage.id(), failure));
+        } catch (IllegalArgumentException | JsonProcessingException e) {
+            LOG.errorf("Failed to process chat event %s: %s", streamMessage.id(), e.getMessage());
+            ackMessage(key, group, streamMessage.id()).subscribe().with(x -> {
+            }, t -> {
+            });
         } catch (Exception e) {
-            LOG.errorf("Failed to process user event %s: %s", streamMessage.id(), e.getMessage());
-            ackMessage(key, group, streamMessage.id());
+            LOG.errorf("Failed to process chat event, not acknowledging message %s", streamMessage.id());
         }
     }
 }
