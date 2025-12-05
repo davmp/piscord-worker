@@ -37,6 +37,10 @@ public class RoomRepository {
     return col().insertOne(room).replaceWithVoid();
   }
 
+  public Uni<Room> findById(String id) {
+    return col().find(eq("_id", new ObjectId(id))).collect().first();
+  }
+
   public Uni<Void> update(String id, String userId, List<Bson> updates) {
     return col()
         .updateOne(and(eq("_id", new ObjectId(id)), in("admins", new ObjectId(userId))), Updates.combine(updates))
@@ -53,9 +57,32 @@ public class RoomRepository {
   public Uni<Void> leave(String id, String userId) {
     return col()
         .updateOne(and(eq("_id", new ObjectId(id)), in("admins", new ObjectId(userId))),
-            and(
+            Updates.combine(
                 Updates.pull("members", new ObjectId(userId)),
                 Updates.pull("admins", new ObjectId(userId))))
+        .replaceWithVoid();
+  }
+
+  public Uni<Void> kick(String id, String userId) {
+    return col()
+        .updateOne(eq("_id", new ObjectId(id)),
+            Updates.combine(
+                Updates.pull("members", new ObjectId(userId)),
+                Updates.pull("admins", new ObjectId(userId))))
+        .replaceWithVoid();
+  }
+
+  public Uni<Void> delete(String id) {
+    return col().deleteOne(eq("_id", new ObjectId(id))).replaceWithVoid();
+  }
+
+  public Uni<Void> transferOwnership(String id, String newOwnerId, String oldOwnerId) {
+    return col()
+        .updateOne(eq("_id", new ObjectId(id)),
+            Updates.combine(
+                Updates.set("ownerId", new ObjectId(newOwnerId)),
+                Updates.pull("members", new ObjectId(oldOwnerId)),
+                Updates.pull("admins", new ObjectId(oldOwnerId))))
         .replaceWithVoid();
   }
 

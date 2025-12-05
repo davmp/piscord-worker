@@ -22,6 +22,7 @@ import local.piscord.worker.dto.chat.MessageSendDto;
 import local.piscord.worker.dto.chat.MessageUpdateDto;
 import local.piscord.worker.dto.chat.RoomCreateDto;
 import local.piscord.worker.dto.chat.RoomJoinDto;
+import local.piscord.worker.dto.chat.RoomKickDto;
 import local.piscord.worker.dto.chat.RoomLeaveDto;
 import local.piscord.worker.dto.chat.RoomUpdateDto;
 import local.piscord.worker.enums.events.ChatEventType;
@@ -77,6 +78,8 @@ public class ChatStreamConsumer extends BaseStreamConsumer {
                         roomService.join(objectMapper.treeToValue(event.payload(), RoomJoinDto.class));
                     case ROOM_LEAVE ->
                         roomService.leave(objectMapper.treeToValue(event.payload(), RoomLeaveDto.class));
+                    case ROOM_KICK ->
+                        roomService.kick(objectMapper.treeToValue(event.payload(), RoomKickDto.class));
 
                     // Messages
                     case MESSAGE_SEND ->

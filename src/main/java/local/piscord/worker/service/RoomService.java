@@ -14,6 +14,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import local.piscord.worker.dto.chat.RoomCreateDto;
 import local.piscord.worker.dto.chat.RoomJoinDto;
+import local.piscord.worker.dto.chat.RoomKickDto;
 import local.piscord.worker.dto.chat.RoomLeaveDto;
 import local.piscord.worker.dto.chat.RoomUpdateDto;
 import local.piscord.worker.enums.RoomType;
@@ -94,19 +95,6 @@ public class RoomService {
       return Uni.createFrom().voidItem();
     }
 
-    if (dto.removeMembers() != null || dto.addMembers() != null) {
-      if (dto.removeMembers() != null) {
-        updates.add(Updates.pullAll("members", dto.removeMembers().stream().map(ObjectId::new).toList()));
-      }
-      if (dto.addMembers() != null) {
-        updates.add(Updates.addEachToSet("members", dto.addMembers().stream().map(ObjectId::new).toList()));
-      }
-
-      if (dto.maxMembers() != null) {
-        updates.add(Updates.set("max_members", dto.maxMembers()));
-      }
-    }
-
     if (updates.isEmpty()) {
       return Uni.createFrom().voidItem();
     }
@@ -120,6 +108,52 @@ public class RoomService {
   }
 
   public Uni<Void> leave(RoomLeaveDto dto) {
-    return repo.leave(dto.id(), dto.userId());
+    return repo.findById(dto.id())
+        .onItem().ifNull().failWith(new IllegalArgumentException("Room not found"))
+        .chain(room -> {
+          if (!room.getOwnerId().equals(new ObjectId(dto.userId()))) {
+            return repo.leave(dto.id(), dto.userId());
+          }
+
+          ObjectId newOwnerId = null;
+
+          if (room.getAdmins() != null && !room.getAdmins().isEmpty()) {
+            newOwnerId = room.getAdmins().get(0);
+          } else if (room.getMembers() != null && !room.getMembers().isEmpty()) {
+            newOwnerId = room.getMembers().get(0);
+          }
+
+          if (newOwnerId != null) {
+            return repo.transferOwnership(dto.id(), newOwnerId.toHexString(), dto.userId());
+          } else {
+            return repo.delete(dto.id());
+          }
+        });
+  }
+
+  public Uni<Void> kick(RoomKickDto dto) {
+    return repo.findById(dto.id())
+        .onItem().ifNull().failWith(new IllegalArgumentException("Room not found"))
+        .chain(room -> {
+          boolean isOwner = room.getOwnerId().equals(new ObjectId(dto.adminId()));
+          boolean isAdmin = room.getAdmins() != null && room.getAdmins().contains(new ObjectId(dto.adminId()));
+
+          if (!isOwner && !isAdmin) {
+            return Uni.createFrom().failure(new SecurityException("User is not authorized to kick members"));
+          }
+
+          boolean targetIsOwner = room.getOwnerId().equals(new ObjectId(dto.userId()));
+          boolean targetIsAdmin = room.getAdmins() != null && room.getAdmins().contains(new ObjectId(dto.userId()));
+
+          if (targetIsOwner) {
+            return Uni.createFrom().failure(new SecurityException("Cannot kick the owner"));
+          }
+
+          if (targetIsAdmin && !isOwner) {
+            return Uni.createFrom().failure(new SecurityException("Admins cannot kick other admins"));
+          }
+
+          return repo.kick(dto.id(), dto.userId());
+        });
   }
 }

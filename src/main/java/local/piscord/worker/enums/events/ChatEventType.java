@@ -11,6 +11,7 @@ public enum ChatEventType {
     ROOM_UPDATE("room.update"),
     ROOM_JOIN("room.join"),
     ROOM_LEAVE("room.leave"),
+    ROOM_KICK("room.kick"),
 
     // Message
     MESSAGE_SEND("message.send"),
