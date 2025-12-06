@@ -7,19 +7,17 @@ import jakarta.validation.constraints.NotBlank;
 
 @RegisterForReflection
 public record RoomUpdateDto(
-        @NotBlank(message = "Room ID is required") String id,
+                @NotBlank(message = "Room ID is required") String id,
 
-        @NotBlank(message = "User ID is required") String userId,
+                @NotBlank(message = "User ID is required") String userId,
 
-        String name,
+                String name,
 
-        String description,
+                String description,
 
-        String picture,
+                String picture,
 
-        String type,
+                @NotBlank(message = "Room owner ID is required") String ownerId,
 
-        @NotBlank(message = "Room owner ID is required") String ownerId,
-
-        @Min(value = 2, message = "Room maximum members must be at least 2") @Max(value = 100, message = "Room maximum members must less 100") Integer maxMembers) {
+                @Min(value = 2, message = "Room maximum members must be at least 2") @Max(value = 100, message = "Room maximum members must less 100") Integer maxMembers) {
 }

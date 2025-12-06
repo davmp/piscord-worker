@@ -85,9 +85,6 @@ public class RoomService {
     if (dto.picture() != null) {
       updates.add(Updates.set("picture", dto.picture()));
     }
-    if (dto.type() != null) {
-      updates.add(Updates.set("type", dto.type()));
-    }
     if (dto.ownerId() != null) {
       updates.add(Updates.set("ownerId", dto.ownerId()));
     }

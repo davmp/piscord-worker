@@ -19,6 +19,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import local.piscord.worker.enums.RoomType;
 import local.piscord.worker.model.Room;
 
 @ApplicationScoped
@@ -49,7 +50,7 @@ public class RoomRepository {
 
   public Uni<Void> join(String id, String userId) {
     return col()
-        .updateOne(and(eq("_id", new ObjectId(id)), in("admins", new ObjectId(userId))),
+        .updateOne(and(eq("_id", new ObjectId(id)), eq("type", RoomType.PUBLIC)),
             Updates.addToSet("members", new ObjectId(userId)))
         .replaceWithVoid();
   }
